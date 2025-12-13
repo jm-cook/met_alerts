@@ -97,7 +97,10 @@ class MetAlertsCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from API."""
-        url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/current.json?lat={self.latitude}&lon={self.longitude}&lang={self.lang}"
+        # Round to 4 decimals as required by MET.no API
+        lat = round(self.latitude, 4)
+        lon = round(self.longitude, 4)
+        url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/current.json?lat={lat}&lon={lon}&lang={self.lang}"
         #url = f"https://api.met.no/weatherapi/metalerts/2.0/example.json?lang={self.lang}"
         try:
             async with aiohttp.ClientSession() as session:

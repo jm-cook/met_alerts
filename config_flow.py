@@ -17,7 +17,10 @@ _LOGGER = logging.getLogger(__name__)
 
 async def validate_coordinates(hass: HomeAssistant, latitude: float, longitude: float, lang: str):
     """Validate that the coordinates work with the API."""
-    url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/current.json?lat={latitude}&lon={longitude}&lang={lang}"
+    # Round to 4 decimals as required by MET.no API
+    lat = round(latitude, 4)
+    lon = round(longitude, 4)
+    url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/current.json?lat={lat}&lon={lon}&lang={lang}"
     
     try:
         async with aiohttp.ClientSession() as session:
