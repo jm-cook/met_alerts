@@ -1,8 +1,10 @@
 """Config flow for Met Alerts integration."""
 import asyncio
 import logging
+import ssl
 
 import aiohttp
+import certifi
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -17,12 +19,23 @@ _LOGGER = logging.getLogger(__name__)
 
 async def validate_coordinates(hass: HomeAssistant, latitude: float, longitude: float, lang: str):
     """Validate that the coordinates work with the API."""
-    url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/current.json?lat={latitude}&lon={longitude}&lang={lang}"
+    lat_rounded = round(latitude, 4)
+    lon_rounded = round(longitude, 4)
+    # Use /all endpoint to include future alerts, not just currently active ones
+    url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/all.json?lat={lat_rounded}&lon={lon_rounded}&lang={lang}"
+    
+    # Met.no requires a User-Agent header identifying the application
+    headers = {
+        "User-Agent": "met_alerts/3.0.0 https://github.com/kurtern84/met_alerts"
+    }
+    
+    # Create SSL context using certifi certificates
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
     
     try:
         async with aiohttp.ClientSession() as session:
             async with asyncio.timeout(10):
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers, ssl=ssl_context) as response:
                     if response.status != 200:
                         raise ValueError(f"API returned status {response.status}")
                     

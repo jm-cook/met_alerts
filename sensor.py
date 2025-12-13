@@ -3,8 +3,10 @@ import asyncio
 import logging
 from datetime import timedelta
 import re
+import ssl
 
 import aiohttp
+import certifi
 import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
@@ -97,12 +99,24 @@ class MetAlertsCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from API."""
-        url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/current.json?lat={self.latitude}&lon={self.longitude}&lang={self.lang}"
+        lat_rounded = round(self.latitude, 4)
+        lon_rounded = round(self.longitude, 4)
+        # Use /all endpoint to include future alerts, not just currently active ones
+        url = f"https://aa015h6buqvih86i1.api.met.no/weatherapi/metalerts/2.0/all.json?lat={lat_rounded}&lon={lon_rounded}&lang={self.lang}"
         #url = f"https://api.met.no/weatherapi/metalerts/2.0/example.json?lang={self.lang}"
+        
+        # Met.no requires a User-Agent header identifying the application
+        headers = {
+            "User-Agent": "met_alerts/3.0.0 https://github.com/kurtern84/met_alerts"
+        }
+        
+        # Create SSL context using certifi certificates
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        
         try:
             async with aiohttp.ClientSession() as session:
                 async with asyncio.timeout(10):
-                    async with session.get(url) as response:
+                    async with session.get(url, headers=headers, ssl=ssl_context) as response:
                         if response.status != 200:
                             _LOGGER.error("Error fetching data: %s", response.status)
                             raise UpdateFailed(f"Error fetching data: {response.status}")
